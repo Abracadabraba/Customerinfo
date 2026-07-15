@@ -1,0 +1,6 @@
+{
+  "appId": "com.company.customerregistration",
+  "appName": "客户信息登记",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}
