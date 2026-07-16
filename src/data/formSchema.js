@@ -111,12 +111,14 @@ export const GMP_FIELDS = [
   {
     key: 'internalSurfaceFinish',
     label: 'Internal Surface Finish Ra ≤ ___ μm / 内表面粗糙度',
-    type: 'text',
+    type: 'selectWithOther',
+    options: ['0.4', '0.6', '0.8'],
   },
   {
     key: 'externalSurfaceFinish',
     label: 'External Surface Finish Ra ≤ ___ μm / 外表面粗糙度',
-    type: 'text',
+    type: 'selectWithOther',
+    options: ['0.4', '0.6', '0.8'],
   },
   {
     key: 'dataTracking',
@@ -154,16 +156,21 @@ export const COMMUNICATION_PERSONS = ['Ray', 'Alex', 'Hannah'];
 export const BASIC_INFO_FIELDS = {
   event: [
     { key: 'exhibition', label: 'Exhibition / 展会名称', type: 'text', default: 'Medipharma Vietnam 2026' },
-    { key: 'date', label: 'Date / 日期', type: 'text' },
+    { key: 'date', label: 'Date / 日期', type: 'date' }, // rendered as native date picker, pre-filled with today
     { key: 'boothNo', label: 'Booth No. / 展位号', type: 'text', default: 'Hall A1, B27&B28' },
-    { key: 'salesRep', label: 'Sales Rep / 销售负责人', type: 'text' },
+    { key: 'salesRep', label: 'Sales Rep / 销售负责人', type: 'text' }, // rendered specially (dropdown from Settings)
   ],
   customer: [
     { key: 'name', label: 'Name / 姓名', type: 'text' },
-    { key: 'position', label: 'Position / 职位', type: 'text' },
+    {
+      key: 'position',
+      label: 'Position / 职位',
+      type: 'selectWithOther',
+      options: ['Owner', 'Director', 'Purchasing Manager', 'Sales', 'Engineer'],
+    },
     { key: 'company', label: 'Company / 公司', type: 'text' },
-    { key: 'country', label: 'Country / 国家', type: 'text' },
-    { key: 'telWhatsapp', label: 'Tel / WhatsApp', type: 'text' },
+    { key: 'country', label: 'Country / 国家', type: 'countrySelect' },
+    { key: 'telWhatsapp', label: 'Tel / WhatsApp', type: 'text' }, // rendered specially (auto dial code)
     { key: 'email', label: 'Email', type: 'text' },
     { key: 'website', label: 'Website / 网站', type: 'text' },
   ],

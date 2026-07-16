@@ -1,18 +1,30 @@
 import React, { useMemo, useState } from 'react';
 import FieldRenderer from './FieldRenderer';
+import BusinessCardCapture from './BusinessCardCapture';
 import {
   PRODUCT_LIST,
   PRODUCT_FIELDS,
   GMP_FIELDS,
-  COMMUNICATION_PERSONS,
   BASIC_INFO_FIELDS,
 } from '../data/formSchema';
+import { COUNTRIES } from '../data/countries';
+import { getSettings } from '../utils/settings';
 import { createRecord, updateRecord } from '../utils/db';
 import { generateDocxBlob } from '../utils/exportDocx';
-import { saveBlobAsFile } from '../utils/saveFile';
+import { saveDocxToDownloads } from '../utils/saveFile';
+import { buildExportMeta } from '../utils/exportMeta';
 
-const emptyData = () => ({
-  basic: {},
+function todayISO() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+const emptyData = (settings) => ({
+  basic: {
+    exhibition: settings.exhibitionName,
+    date: todayISO(),
+  },
   products: [],
   productDetails: {},
   gmp: {},
@@ -20,7 +32,8 @@ const emptyData = () => ({
 });
 
 export default function FormWizard({ existingRecord, onDone, onCancel }) {
-  const [data, setData] = useState(() => existingRecord?.data || emptyData());
+  const [settings] = useState(() => getSettings());
+  const [data, setData] = useState(() => existingRecord?.data || emptyData(settings));
   const [stepIndex, setStepIndex] = useState(0);
   const [saving, setSaving] = useState(false);
   const [savedMessage, setSavedMessage] = useState('');
@@ -38,6 +51,29 @@ export default function FormWizard({ existingRecord, onDone, onCancel }) {
 
   function updateBasic(key, value) {
     setData((d) => ({ ...d, basic: { ...d.basic, [key]: value } }));
+  }
+
+  function handleCountryChange(iso2) {
+    setData((d) => {
+      const nextBasic = { ...d.basic, country: iso2 };
+      // Auto-insert the dial code into an empty phone field to save typing.
+      const entry = COUNTRIES.find((c) => c.iso2 === iso2);
+      if (entry && !nextBasic.telWhatsapp) {
+        nextBasic.telWhatsapp = `+${entry.dial} `;
+      }
+      return { ...d, basic: nextBasic };
+    });
+  }
+
+  function insertDialCode() {
+    setData((d) => {
+      const entry = COUNTRIES.find((c) => c.iso2 === d.basic.country);
+      if (!entry) return d;
+      const current = d.basic.telWhatsapp || '';
+      const prefix = `+${entry.dial} `;
+      const withoutOldPrefix = current.replace(/^\+\d+\s*/, '');
+      return { ...d, basic: { ...d.basic, telWhatsapp: prefix + withoutOldPrefix } };
+    });
   }
 
   function toggleProduct(key) {
@@ -114,9 +150,19 @@ export default function FormWizard({ existingRecord, onDone, onCancel }) {
   async function handleExportDocx() {
     const record = await handleSave();
     const blob = await generateDocxBlob(record);
-    const safeName = (data.basic.company || data.basic.name || record.id).replace(/[^\w\-]+/g, '_');
-    const versionTag = record.history.length === 0 ? 'orig' : 'R' + record.history.length;
-    await saveBlobAsFile(blob, `客户信息登记表_${safeName}_${versionTag}.docx`);
+    const meta = buildExportMeta(record, settings.exhibitionName);
+    const result = await saveDocxToDownloads(blob, {
+      exhibitionFolder: meta.exhibitionFolder,
+      dateFolder: meta.dateFolder,
+      filename: meta.filename,
+    });
+    if (result.method === 'downloads') {
+      setSavedMessage(`已导出 / Exported to: Download/${meta.exhibitionFolder}/${meta.dateFolder}/${meta.filename}`);
+    } else if (result.method === 'share') {
+      setSavedMessage('已生成文档，请在分享菜单中选择保存位置 / File ready, choose where to save from the share sheet');
+    } else {
+      setSavedMessage(`已下载 / Downloaded: ${meta.filename}`);
+    }
   }
 
   return (
@@ -129,18 +175,89 @@ export default function FormWizard({ existingRecord, onDone, onCancel }) {
         <div className="step">
           <h2>展会 & 客户信息 / Event & Customer Info</h2>
           <h3>Event / 展会</h3>
-          {BASIC_INFO_FIELDS.event.map((f) => (
-            <FieldRenderer
-              key={f.key}
-              field={f}
-              value={data.basic[f.key] ?? f.default}
-              onChange={updateBasic}
-            />
-          ))}
+          <FieldRenderer
+            field={BASIC_INFO_FIELDS.event[0]}
+            value={data.basic.exhibition}
+            onChange={updateBasic}
+          />
+          <FieldRenderer
+            field={BASIC_INFO_FIELDS.event[1]}
+            value={data.basic.date}
+            onChange={updateBasic}
+          />
+          <FieldRenderer
+            field={BASIC_INFO_FIELDS.event[2]}
+            value={data.basic.boothNo ?? BASIC_INFO_FIELDS.event[2].default}
+            onChange={updateBasic}
+          />
+          <div className="field">
+            <label>Sales Rep / 销售负责人</label>
+            <select
+              value={data.basic.salesRep || ''}
+              onChange={(e) => updateBasic('salesRep', e.target.value)}
+            >
+              <option value="">-- 请选择 / Select --</option>
+              {settings.teamMembers.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+            <p className="hint-text">名单可在"设置"里维护 / Manage the list in Settings</p>
+          </div>
+
           <h3>1. Customer Information / 客户信息</h3>
-          {BASIC_INFO_FIELDS.customer.map((f) => (
-            <FieldRenderer key={f.key} field={f} value={data.basic[f.key]} onChange={updateBasic} />
-          ))}
+
+          <BusinessCardCapture
+            cardImage={data.basic.businessCardImage}
+            onImageCaptured={(img) => updateBasic('businessCardImage', img)}
+            onApplyField={(key, value) => updateBasic(key, value)}
+          />
+
+          <FieldRenderer
+            field={BASIC_INFO_FIELDS.customer[0]} // name
+            value={data.basic.name}
+            onChange={updateBasic}
+          />
+          <FieldRenderer
+            field={BASIC_INFO_FIELDS.customer[1]} // position
+            value={data.basic.position}
+            onChange={updateBasic}
+          />
+          <FieldRenderer
+            field={BASIC_INFO_FIELDS.customer[2]} // company
+            value={data.basic.company}
+            onChange={updateBasic}
+          />
+          <FieldRenderer
+            field={BASIC_INFO_FIELDS.customer[3]} // country
+            value={data.basic.country}
+            onChange={(key, value) => handleCountryChange(value)}
+          />
+          <div className="field">
+            <label>Tel / WhatsApp</label>
+            <div className="phone-row">
+              <input
+                type="text"
+                value={data.basic.telWhatsapp || ''}
+                onChange={(e) => updateBasic('telWhatsapp', e.target.value)}
+                placeholder="+区号 电话号码"
+              />
+              <button type="button" className="btn small" onClick={insertDialCode}>
+                插入区号
+              </button>
+            </div>
+          </div>
+          <FieldRenderer
+            field={BASIC_INFO_FIELDS.customer[5]} // email
+            value={data.basic.email}
+            onChange={updateBasic}
+          />
+          <FieldRenderer
+            field={BASIC_INFO_FIELDS.customer[6]} // website
+            value={data.basic.website}
+            onChange={updateBasic}
+          />
 
           <h3>Products of Interest / 意向产品（多选）</h3>
           <div className="checkbox-group">
@@ -199,7 +316,7 @@ export default function FormWizard({ existingRecord, onDone, onCancel }) {
           <div className="field">
             <label>Participants in the discussion / 参与沟通人员</label>
             <div className="checkbox-group">
-              {COMMUNICATION_PERSONS.map((p) => (
+              {settings.teamMembers.map((p) => (
                 <label key={p} className="checkbox-item">
                   <input
                     type="checkbox"

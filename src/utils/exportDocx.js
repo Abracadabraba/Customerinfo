@@ -9,7 +9,7 @@ import {
   TableCell,
   WidthType,
   ShadingType,
-  BorderStyle,
+  ImageRun,
 } from 'docx';
 import {
   PRODUCT_LIST,
@@ -17,6 +17,7 @@ import {
   GMP_FIELDS,
   BASIC_INFO_FIELDS,
 } from '../data/formSchema';
+import { COUNTRIES } from '../data/countries';
 
 function labelText(field) {
   return field.label;
@@ -39,6 +40,18 @@ function valueToString(field, value) {
     const hz = value?.hz || '';
     const phase = value?.phase || '';
     return `${v} V / ${hz} Hz / ${phase}`;
+  }
+  if (field.type === 'selectWithOther') {
+    const sel = value?.selected || '';
+    if (sel === 'Other') return value?.other ? `Other: ${value.other}` : 'Other';
+    return sel;
+  }
+  if (field.type === 'countrySelect') {
+    const entry = COUNTRIES.find((c) => c.iso2 === value);
+    return entry ? `${entry.cn} ${entry.en}` : String(value);
+  }
+  if (field.type === 'date') {
+    return String(value);
   }
   return String(value);
 }
@@ -65,6 +78,22 @@ function sectionTable(fields, dataObj) {
     columnWidths: [3600, 6000],
     rows: fields.map((f) => fieldRow(f, dataObj?.[f.key])),
   });
+}
+
+function dataUrlToImageInput(dataUrl) {
+  if (!dataUrl || !dataUrl.startsWith('data:')) return null;
+  const [meta, base64] = dataUrl.split(',');
+  const mimeMatch = meta.match(/data:(.*);base64/);
+  const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+  let type = 'jpg';
+  if (mime.includes('png')) type = 'png';
+  else if (mime.includes('gif')) type = 'gif';
+  else if (mime.includes('bmp')) type = 'bmp';
+
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return { data: bytes, type };
 }
 
 function heading(text, level = HeadingLevel.HEADING_2) {
@@ -110,6 +139,28 @@ export async function generateDocxBlob(record) {
   // Customer info
   children.push(heading('1. Customer Information / 客户信息'));
   children.push(sectionTable(BASIC_INFO_FIELDS.customer, basic));
+
+  // Business card photo (staple business card here)
+  const cardImageInput = dataUrlToImageInput(basic.businessCardImage);
+  if (cardImageInput) {
+    children.push(
+      new Paragraph({
+        spacing: { before: 150, after: 100 },
+        children: [new TextRun({ text: 'Business Card / 名片：', bold: true, italics: true })],
+      })
+    );
+    children.push(
+      new Paragraph({
+        children: [
+          new ImageRun({
+            data: cardImageInput.data,
+            type: cardImageInput.type,
+            transformation: { width: 320, height: 200 },
+          }),
+        ],
+      })
+    );
+  }
 
   // Products of interest
   children.push(heading('Products of Interest / 意向产品'));

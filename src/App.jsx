@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import RecordList from './components/RecordList';
 import FormWizard from './components/FormWizard';
+import SettingsPage from './components/SettingsPage';
 import './App.css';
 
 export default function App() {
-  const [view, setView] = useState('list'); // 'list' | 'form'
+  const [view, setView] = useState('list'); // 'list' | 'form' | 'settings'
   const [editingRecord, setEditingRecord] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -18,6 +19,10 @@ export default function App() {
     setView('form');
   }
 
+  function openSettings() {
+    setView('settings');
+  }
+
   function backToList() {
     setRefreshKey((k) => k + 1);
     setView('list');
@@ -26,7 +31,7 @@ export default function App() {
   return (
     <div className="app-shell">
       {view === 'list' && (
-        <RecordList key={refreshKey} onCreateNew={openNew} onEdit={openEdit} />
+        <RecordList key={refreshKey} onCreateNew={openNew} onEdit={openEdit} onOpenSettings={openSettings} />
       )}
       {view === 'form' && (
         <FormWizard
@@ -35,6 +40,7 @@ export default function App() {
           onCancel={backToList}
         />
       )}
+      {view === 'settings' && <SettingsPage onBack={backToList} />}
     </div>
   );
 }

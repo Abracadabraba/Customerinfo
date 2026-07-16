@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { listRecords, deleteRecord, currentVersionLabel } from '../utils/db';
 import { generateDocxBlob } from '../utils/exportDocx';
-import { saveBlobAsFile } from '../utils/saveFile';
+import { saveDocxToDownloads } from '../utils/saveFile';
+import { buildExportMeta } from '../utils/exportMeta';
+import { getSettings } from '../utils/settings';
 
-export default function RecordList({ onCreateNew, onEdit }) {
+export default function RecordList({ onCreateNew, onEdit, onOpenSettings }) {
   const [records, setRecords] = useState(() => listRecords());
   const [query, setQuery] = useState('');
 
@@ -19,13 +21,19 @@ export default function RecordList({ onCreateNew, onEdit }) {
   }
 
   async function handleExport(record) {
+    const settings = getSettings();
     const blob = await generateDocxBlob(record);
-    const safeName = (record.data.basic?.company || record.data.basic?.name || record.id).replace(
-      /[^\w\-]+/g,
-      '_'
-    );
-    const versionTag = record.history.length === 0 ? 'orig' : 'R' + record.history.length;
-    await saveBlobAsFile(blob, `客户信息登记表_${safeName}_${versionTag}.docx`);
+    const meta = buildExportMeta(record, settings.exhibitionName);
+    const result = await saveDocxToDownloads(blob, {
+      exhibitionFolder: meta.exhibitionFolder,
+      dateFolder: meta.dateFolder,
+      filename: meta.filename,
+    });
+    if (result.method === 'downloads') {
+      window.alert(`已导出到 / Exported to:\nDownload/${meta.exhibitionFolder}/${meta.dateFolder}/${meta.filename}`);
+    } else if (result.method === 'share') {
+      window.alert('文档已生成，请在弹出的分享菜单中选择保存位置 / File ready — choose a save location from the share sheet');
+    }
   }
 
   const filtered = records.filter((r) => {
@@ -38,9 +46,14 @@ export default function RecordList({ onCreateNew, onEdit }) {
     <div className="record-list">
       <div className="list-header">
         <h1>客户信息登记 / Customer Registration</h1>
-        <button className="btn primary" onClick={onCreateNew}>
-          + 新建客户 / New Customer
-        </button>
+        <div className="header-actions">
+          <button className="btn" onClick={onOpenSettings}>
+            ⚙ 设置 / Settings
+          </button>
+          <button className="btn primary" onClick={onCreateNew}>
+            + 新建客户 / New Customer
+          </button>
+        </div>
       </div>
       <input
         className="search-box"

@@ -1,7 +1,84 @@
 import React from 'react';
+import SearchableSelect from './SearchableSelect';
+import { COUNTRIES } from '../data/countries';
 
 export default function FieldRenderer({ field, value, onChange }) {
   const update = (newVal) => onChange(field.key, newVal);
+
+  if (field.type === 'countrySelect') {
+    const options = COUNTRIES.map((c) => ({
+      value: c.iso2,
+      label: `${c.cn} ${c.en}`,
+      sublabel: c.en,
+    }));
+    return (
+      <div className="field">
+        <label>{field.label}</label>
+        <SearchableSelect
+          options={options}
+          value={value}
+          onChange={update}
+          placeholder="搜索国家 / Search country..."
+        />
+      </div>
+    );
+  }
+
+  if (field.type === 'select') {
+    return (
+      <div className="field">
+        <label>{field.label}</label>
+        <select value={value || ''} onChange={(e) => update(e.target.value)}>
+          <option value="">-- 请选择 / Select --</option>
+          {field.options.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  }
+
+  if (field.type === 'selectWithOther') {
+    const sel = value?.selected || '';
+    const other = value?.other || '';
+    return (
+      <div className="field">
+        <label>{field.label}</label>
+        <select
+          value={sel}
+          onChange={(e) => update({ ...value, selected: e.target.value })}
+        >
+          <option value="">-- 请选择 / Select --</option>
+          {field.options.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+          <option value="Other">Other / 其他</option>
+        </select>
+        {sel === 'Other' && (
+          <input
+            type="text"
+            className="other-input"
+            placeholder="请输入 / Enter..."
+            value={other}
+            onChange={(e) => update({ ...value, other: e.target.value })}
+          />
+        )}
+      </div>
+    );
+  }
+
+  if (field.type === 'date') {
+    return (
+      <div className="field">
+        <label>{field.label}</label>
+        <input type="date" value={value || ''} onChange={(e) => update(e.target.value)} />
+      </div>
+    );
+  }
 
   if (field.type === 'text') {
     return (
