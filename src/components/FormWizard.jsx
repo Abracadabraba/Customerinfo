@@ -220,7 +220,11 @@ export default function FormWizard({ existingRecord, onDone, onCancel }) {
           <BusinessCardCapture
             cardImage={data.basic.businessCardImage}
             currentValues={{ name: data.basic.name, company: data.basic.company }}
-            onImageCaptured={(img) => updateBasic('businessCardImage', img)}
+            onImageCaptured={(img, meta) => {
+              updateBasic('businessCardImage', img);
+              updateBasic('businessCardImageWidth', meta?.width);
+              updateBasic('businessCardImageHeight', meta?.height);
+            }}
             onApplyField={(key, value) => updateBasic(key, value)}
           />
 

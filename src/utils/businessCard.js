@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core';
+import { autoLandscape } from './imageOrientation';
 
-// Returns { imageDataUrl, rawText, lines, guesses: { phone, email, website } }
+// Returns { imageDataUrl, width, height, rawText, lines, guesses: { phone, email, website } }
 // On web (non-native) preview, only the photo is captured; OCR requires a real device.
 export async function captureAndScanBusinessCard() {
   const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
@@ -17,7 +18,12 @@ export async function captureAndScanBusinessCard() {
   });
 
   const format = photo.format || 'jpeg';
-  const imageDataUrl = `data:image/${format};base64,${photo.base64String}`;
+  const rawDataUrl = `data:image/${format};base64,${photo.base64String}`;
+
+  // Business cards are wide rectangles — if the camera handed back a portrait
+  // (taller-than-wide) image, rotate it 90° so it isn't stretched when placed
+  // into the exported Word document.
+  const { dataUrl: imageDataUrl, width, height } = await autoLandscape(rawDataUrl);
 
   let rawText = '';
 
@@ -42,7 +48,7 @@ export async function captureAndScanBusinessCard() {
     .map((l) => l.trim())
     .filter(Boolean);
 
-  return { imageDataUrl, rawText, lines, guesses };
+  return { imageDataUrl, width, height, rawText, lines, guesses };
 }
 
 const COMPANY_KEYWORDS = [

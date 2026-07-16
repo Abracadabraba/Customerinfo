@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { captureAndScanBusinessCard } from '../utils/businessCard';
+import { rotateImageDataUrl } from '../utils/imageOrientation';
 
 export default function BusinessCardCapture({ cardImage, currentValues, onImageCaptured, onApplyField }) {
   const [scanning, setScanning] = useState(false);
+  const [rotating, setRotating] = useState(false);
   const [lines, setLines] = useState([]);
   const [error, setError] = useState('');
   const [noTextWarning, setNoTextWarning] = useState(false);
@@ -12,8 +14,8 @@ export default function BusinessCardCapture({ cardImage, currentValues, onImageC
     setNoTextWarning(false);
     setScanning(true);
     try {
-      const { imageDataUrl, lines, guesses } = await captureAndScanBusinessCard();
-      onImageCaptured(imageDataUrl);
+      const { imageDataUrl, width, height, lines, guesses } = await captureAndScanBusinessCard();
+      onImageCaptured(imageDataUrl, { width, height });
       setLines(lines);
       if (lines.length === 0) {
         setNoTextWarning(true);
@@ -32,10 +34,31 @@ export default function BusinessCardCapture({ cardImage, currentValues, onImageC
     }
   }
 
+  async function handleRotate() {
+    if (!cardImage) return;
+    setRotating(true);
+    try {
+      const { dataUrl, width, height } = await rotateImageDataUrl(cardImage, 90);
+      onImageCaptured(dataUrl, { width, height });
+    } catch (e) {
+      console.error(e);
+      setError('旋转失败，请重试 / Rotate failed, please try again');
+    } finally {
+      setRotating(false);
+    }
+  }
+
   return (
     <div className="field business-card-box">
       <label>名片 / Business Card</label>
-      {cardImage && <img src={cardImage} alt="business card" className="card-preview" />}
+      {cardImage && (
+        <>
+          <img src={cardImage} alt="business card" className="card-preview" />
+          <button className="btn small" onClick={handleRotate} disabled={rotating}>
+            ↻ 旋转90° / Rotate 90°
+          </button>
+        </>
+      )}
       <button className="btn" onClick={handleScan} disabled={scanning}>
         {scanning ? '识别中… / Scanning...' : cardImage ? '重新扫描 / Re-scan' : '拍摄名片自动识别 / Scan Business Card'}
       </button>
@@ -46,6 +69,7 @@ export default function BusinessCardCapture({ cardImage, currentValues, onImageC
         </p>
       )}
       <p className="hint-text">
+        名片照片会自动尝试转正为横向；如果方向还是不对，可以点上面的"旋转90°"按钮手动转到正确方向。
         电话/邮箱/网址会自动尝试填入对应字段；姓名、公司识别准确度有限，可点击下方识别出的文字快速填入。
       </p>
       {lines.length > 0 && (

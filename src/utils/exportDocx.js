@@ -96,6 +96,15 @@ function dataUrlToImageInput(dataUrl) {
   return { data: bytes, type };
 }
 
+function computeImageDisplaySize(naturalWidth, naturalHeight) {
+  const maxWidth = 420;
+  const maxHeight = 300;
+  const w = naturalWidth || maxWidth;
+  const h = naturalHeight || Math.round(maxWidth * 0.6);
+  const scale = Math.min(maxWidth / w, maxHeight / h, 1);
+  return { width: Math.round(w * scale), height: Math.round(h * scale) };
+}
+
 function heading(text, level = HeadingLevel.HEADING_2) {
   return new Paragraph({ text, heading: level, spacing: { before: 300, after: 150 } });
 }
@@ -143,6 +152,10 @@ export async function generateDocxBlob(record) {
   // Business card photo (staple business card here)
   const cardImageInput = dataUrlToImageInput(basic.businessCardImage);
   if (cardImageInput) {
+    const displaySize = computeImageDisplaySize(
+      basic.businessCardImageWidth,
+      basic.businessCardImageHeight
+    );
     children.push(
       new Paragraph({
         spacing: { before: 150, after: 100 },
@@ -155,7 +168,7 @@ export async function generateDocxBlob(record) {
           new ImageRun({
             data: cardImageInput.data,
             type: cardImageInput.type,
-            transformation: { width: 320, height: 200 },
+            transformation: displaySize,
           }),
         ],
       })
