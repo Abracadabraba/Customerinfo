@@ -11,13 +11,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@capacitor-mlkit/text-recognition": "^8.1.0",
     "@capacitor/android": "^8.4.2",
     "@capacitor/camera": "^8.2.1",
     "@capacitor/core": "^8.4.2",
     "@capacitor/filesystem": "^8.1.2",
     "@capacitor/share": "^8.0.1",
     "@capgo/capacitor-file-sharer": "^8.1.8",
+    "@jcesarmobile/capacitor-ocr": "^0.3.0",
     "docx": "^9.7.1",
     "file-saver": "^2.0.5",
     "react": "^19.2.7",

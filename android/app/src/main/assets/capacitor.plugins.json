@@ -1,9 +1,5 @@
 [
 	{
-		"pkg": "@capacitor-mlkit/text-recognition",
-		"classpath": "io.capawesome.capacitorjs.plugins.mlkit.textrecognition.TextRecognitionPlugin"
-	},
-	{
 		"pkg": "@capacitor/camera",
 		"classpath": "com.capacitorjs.plugins.camera.CameraPlugin"
 	},
@@ -18,5 +14,9 @@
 	{
 		"pkg": "@capgo/capacitor-file-sharer",
 		"classpath": "app.capgo.filesharer.FileSharerPlugin"
+	},
+	{
+		"pkg": "@jcesarmobile/capacitor-ocr",
+		"classpath": "com.jcesarmobile.capacitor.ocr.OcrPlugin"
 	}
 ]

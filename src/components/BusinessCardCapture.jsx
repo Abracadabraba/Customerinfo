@@ -1,21 +1,29 @@
 import React, { useState } from 'react';
 import { captureAndScanBusinessCard } from '../utils/businessCard';
 
-export default function BusinessCardCapture({ cardImage, onImageCaptured, onApplyField }) {
+export default function BusinessCardCapture({ cardImage, currentValues, onImageCaptured, onApplyField }) {
   const [scanning, setScanning] = useState(false);
   const [lines, setLines] = useState([]);
   const [error, setError] = useState('');
+  const [noTextWarning, setNoTextWarning] = useState(false);
 
   async function handleScan() {
     setError('');
+    setNoTextWarning(false);
     setScanning(true);
     try {
       const { imageDataUrl, lines, guesses } = await captureAndScanBusinessCard();
       onImageCaptured(imageDataUrl);
       setLines(lines);
+      if (lines.length === 0) {
+        setNoTextWarning(true);
+      }
       if (guesses.email) onApplyField('email', guesses.email);
       if (guesses.website) onApplyField('website', guesses.website);
       if (guesses.phone) onApplyField('telWhatsapp', guesses.phone);
+      // Only auto-fill name/company if the user hasn't already typed something.
+      if (guesses.company && !currentValues?.company) onApplyField('company', guesses.company);
+      if (guesses.name && !currentValues?.name) onApplyField('name', guesses.name);
     } catch (e) {
       console.error(e);
       setError('拍照或识别失败，请重试 / Scan failed, please try again');
@@ -32,6 +40,11 @@ export default function BusinessCardCapture({ cardImage, onImageCaptured, onAppl
         {scanning ? '识别中… / Scanning...' : cardImage ? '重新扫描 / Re-scan' : '拍摄名片自动识别 / Scan Business Card'}
       </button>
       {error && <p className="error-text">{error}</p>}
+      {noTextWarning && (
+        <p className="error-text">
+          未识别到任何文字，可能是照片不够清晰/光线不足，或该机型不支持离线识别。可重新拍摄，或直接手动填写。
+        </p>
+      )}
       <p className="hint-text">
         电话/邮箱/网址会自动尝试填入对应字段；姓名、公司识别准确度有限，可点击下方识别出的文字快速填入。
       </p>

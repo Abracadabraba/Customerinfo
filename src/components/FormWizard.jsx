@@ -34,6 +34,7 @@ const emptyData = (settings) => ({
 export default function FormWizard({ existingRecord, onDone, onCancel }) {
   const [settings] = useState(() => getSettings());
   const [data, setData] = useState(() => existingRecord?.data || emptyData(settings));
+  const [currentRecord, setCurrentRecord] = useState(existingRecord || null);
   const [stepIndex, setStepIndex] = useState(0);
   const [saving, setSaving] = useState(false);
   const [savedMessage, setSavedMessage] = useState('');
@@ -129,8 +130,8 @@ export default function FormWizard({ existingRecord, onDone, onCancel }) {
   async function handleSave() {
     setSaving(true);
     let record;
-    if (existingRecord) {
-      record = updateRecord(existingRecord.id, data);
+    if (currentRecord) {
+      record = updateRecord(currentRecord.id, data);
       setSavedMessage(
         `已保存为新版本 ${'R' + record.history.length} / Saved as new version R${record.history.length}`
       );
@@ -138,19 +139,23 @@ export default function FormWizard({ existingRecord, onDone, onCancel }) {
       record = createRecord(data);
       setSavedMessage('已创建新客户记录 / New record created');
     }
+    setCurrentRecord(record);
     setSaving(false);
     return record;
   }
 
-  async function handleSaveAndExit() {
-    const record = await handleSave();
-    onDone(record);
+  function handleBackToHome() {
+    onDone();
   }
 
   async function handleExportDocx() {
-    const record = await handleSave();
-    const blob = await generateDocxBlob(record);
-    const meta = buildExportMeta(record, settings.exhibitionName);
+    // Exporting never touches the database — it just renders whatever is
+    // currently on screen. This avoids creating extra records in the list.
+    const exportSource = currentRecord
+      ? { ...currentRecord, data }
+      : { id: 'DRAFT', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), data, history: [] };
+    const blob = await generateDocxBlob(exportSource);
+    const meta = buildExportMeta(exportSource, settings.exhibitionName);
     const result = await saveDocxToDownloads(blob, {
       exhibitionFolder: meta.exhibitionFolder,
       dateFolder: meta.dateFolder,
@@ -210,6 +215,7 @@ export default function FormWizard({ existingRecord, onDone, onCancel }) {
 
           <BusinessCardCapture
             cardImage={data.basic.businessCardImage}
+            currentValues={{ name: data.basic.name, company: data.basic.company }}
             onImageCaptured={(img) => updateBasic('businessCardImage', img)}
             onApplyField={(key, value) => updateBasic(key, value)}
           />
@@ -354,13 +360,13 @@ export default function FormWizard({ existingRecord, onDone, onCancel }) {
           {savedMessage && <div className="saved-banner">{savedMessage}</div>}
           <div className="review-actions">
             <button className="btn primary" disabled={saving} onClick={handleSave}>
-              保存 / Save
+              {currentRecord ? '保存修改 / Save Changes' : '保存 / Save'}
             </button>
             <button className="btn" disabled={saving} onClick={handleExportDocx}>
               导出 Word 文档 / Export .docx
             </button>
-            <button className="btn secondary" onClick={handleSaveAndExit}>
-              保存并返回列表 / Save & Back to list
+            <button className="btn secondary" onClick={handleBackToHome}>
+              返回首页 / Back to Home
             </button>
           </div>
         </div>
