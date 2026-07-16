@@ -95,6 +95,8 @@ export default function RecordList({ onCreateNew, onEdit, onOpenSettings }) {
           );
         })}
       </ul>
+
+      <div className="app-footer">© SKE&Eagle Group</div>
     </div>
   );
 }

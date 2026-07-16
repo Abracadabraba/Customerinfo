@@ -10,6 +10,8 @@ import {
   WidthType,
   ShadingType,
   ImageRun,
+  Footer,
+  AlignmentType,
 } from 'docx';
 import {
   PRODUCT_LIST,
@@ -36,10 +38,11 @@ function valueToString(field, value) {
     return sel + detail;
   }
   if (field.type === 'powerSpec') {
-    const v = value?.voltage || '';
+    const voltageRaw = value?.voltage || '';
+    const voltage = voltageRaw === 'Other' ? value?.voltageOther || 'Other' : voltageRaw;
     const hz = value?.hz || '';
     const phase = value?.phase || '';
-    return `${v} V / ${hz} Hz / ${phase}`;
+    return `${voltage} V / ${hz} Hz / ${phase}`;
   }
   if (field.type === 'selectWithOther') {
     const sel = value?.selected || '';
@@ -257,11 +260,30 @@ export async function generateDocxBlob(record) {
     );
   }
 
+  // Copyright / rights notice at the end of the document body
+  children.push(
+    new Paragraph({
+      spacing: { before: 400 },
+      alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: '© SKE&Eagle Group', size: 18, color: '999999' })],
+    })
+  );
+
   const doc = new Document({
     sections: [
       {
         properties: {
           page: { size: { width: 11906, height: 16838 } }, // A4
+        },
+        footers: {
+          default: new Footer({
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                children: [new TextRun({ text: '© SKE&Eagle Group', size: 16, color: '999999' })],
+              }),
+            ],
+          }),
         },
         children,
       },

@@ -20,6 +20,10 @@ function todayISO() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+function getCustomerField(key) {
+  return BASIC_INFO_FIELDS.customer.find((f) => f.key === key);
+}
+
 const emptyData = (settings) => ({
   basic: {
     exhibition: settings.exhibitionName,
@@ -40,6 +44,14 @@ export default function FormWizard({ existingRecord, onDone, onCancel }) {
   const [savedMessage, setSavedMessage] = useState('');
 
   const selectedProducts = data.products || [];
+
+  const firstPowerProductKey = useMemo(
+    () =>
+      selectedProducts.find((key) =>
+        (PRODUCT_FIELDS[key] || []).some((f) => f.key === 'powerSpec')
+      ) || null,
+    [selectedProducts]
+  );
 
   const steps = useMemo(() => {
     const s = ['basic'];
@@ -228,23 +240,30 @@ export default function FormWizard({ existingRecord, onDone, onCancel }) {
             onApplyField={(key, value) => updateBasic(key, value)}
           />
 
+          <div className="name-row">
+            <FieldRenderer
+              field={getCustomerField('namePrefix')}
+              value={data.basic.namePrefix}
+              onChange={updateBasic}
+            />
+            <FieldRenderer
+              field={getCustomerField('name')}
+              value={data.basic.name}
+              onChange={updateBasic}
+            />
+          </div>
           <FieldRenderer
-            field={BASIC_INFO_FIELDS.customer[0]} // name
-            value={data.basic.name}
-            onChange={updateBasic}
-          />
-          <FieldRenderer
-            field={BASIC_INFO_FIELDS.customer[1]} // position
+            field={getCustomerField('position')}
             value={data.basic.position}
             onChange={updateBasic}
           />
           <FieldRenderer
-            field={BASIC_INFO_FIELDS.customer[2]} // company
+            field={getCustomerField('company')}
             value={data.basic.company}
             onChange={updateBasic}
           />
           <FieldRenderer
-            field={BASIC_INFO_FIELDS.customer[3]} // country
+            field={getCustomerField('country')}
             value={data.basic.country}
             onChange={(key, value) => handleCountryChange(value)}
           />
@@ -263,12 +282,12 @@ export default function FormWizard({ existingRecord, onDone, onCancel }) {
             </div>
           </div>
           <FieldRenderer
-            field={BASIC_INFO_FIELDS.customer[5]} // email
+            field={getCustomerField('email')}
             value={data.basic.email}
             onChange={updateBasic}
           />
           <FieldRenderer
-            field={BASIC_INFO_FIELDS.customer[6]} // website
+            field={getCustomerField('website')}
             value={data.basic.website}
             onChange={updateBasic}
           />
@@ -303,6 +322,7 @@ export default function FormWizard({ existingRecord, onDone, onCancel }) {
           productKey={currentStep.split(':')[1]}
           data={data}
           updateProductDetail={updateProductDetail}
+          firstPowerProductKey={firstPowerProductKey}
         />
       )}
 
@@ -396,13 +416,47 @@ export default function FormWizard({ existingRecord, onDone, onCancel }) {
   );
 }
 
-function ProductStep({ productKey, data, updateProductDetail }) {
+function ProductStep({ productKey, data, updateProductDetail, firstPowerProductKey }) {
   const fields = PRODUCT_FIELDS[productKey] || [];
   const productMeta = PRODUCT_LIST.find((p) => p.key === productKey);
   const detail = data.productDetails[productKey] || {};
+  const hasPowerSpec = fields.some((f) => f.key === 'powerSpec');
+  const isReferenceDevice = productKey === firstPowerProductKey;
+  const referenceDetail = firstPowerProductKey ? data.productDetails[firstPowerProductKey] || {} : null;
+
+  function copyFromFirstDevice() {
+    if (!referenceDetail) return;
+    updateProductDetail(productKey, 'powerSpec', referenceDetail.powerSpec);
+    updateProductDetail(productKey, 'certRequirements', referenceDetail.certRequirements);
+  }
+
+  // The first time this (non-reference) product step is opened, default its
+  // power spec + cert requirements to match the first device, to save re-typing.
+  useEffect(() => {
+    if (
+      hasPowerSpec &&
+      !isReferenceDevice &&
+      referenceDetail &&
+      detail.powerSpec === undefined &&
+      detail.certRequirements === undefined
+    ) {
+      copyFromFirstDevice();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productKey]);
+
   return (
     <div className="step">
       <h2>{productMeta?.label}</h2>
+      {hasPowerSpec && !isReferenceDevice && referenceDetail && (
+        <div className="saved-banner copy-hint">
+          电压/频率/相数、设备认证要求 已默认带入第一台设备的内容，如有不同可直接修改；
+          设备认证要求可为本设备单独填写不同的认证。
+          <button type="button" className="btn small" onClick={copyFromFirstDevice}>
+            重新复制第一台设备的内容
+          </button>
+        </div>
+      )}
       {fields.map((f) => (
         <FieldRenderer
           key={f.key}

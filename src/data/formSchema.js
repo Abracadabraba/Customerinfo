@@ -161,6 +161,12 @@ export const BASIC_INFO_FIELDS = {
     { key: 'salesRep', label: 'Sales Rep / 销售负责人', type: 'text' }, // rendered specially (dropdown from Settings)
   ],
   customer: [
+    {
+      key: 'namePrefix',
+      label: 'Prefix / 称谓',
+      type: 'selectWithOther',
+      options: ['Mr.', 'Ms.', 'Mrs.', 'Dr.', 'Eng.'],
+    },
     { key: 'name', label: 'Name / 姓名', type: 'text' },
     {
       key: 'position',

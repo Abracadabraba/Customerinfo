@@ -179,17 +179,21 @@ export default function FieldRenderer({ field, value, onChange }) {
 
   if (field.type === 'powerSpec') {
     const v = value || {};
+    const voltageOptions = ['220', '230', '240', '380', '400', '415', '440', '460', '480'];
+    const voltageIsOther = v.voltage === 'Other';
     return (
       <div className="field">
         <label>{field.label}</label>
         <div className="power-spec-row">
-          <input
-            type="text"
-            placeholder="V"
-            value={v.voltage || ''}
-            onChange={(e) => update({ ...v, voltage: e.target.value })}
-          />
-          <span>V</span>
+          <select value={v.voltage || ''} onChange={(e) => update({ ...v, voltage: e.target.value })}>
+            <option value="">V --</option>
+            {voltageOptions.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt} V
+              </option>
+            ))}
+            <option value="Other">Other / 其他</option>
+          </select>
           <select value={v.hz || ''} onChange={(e) => update({ ...v, hz: e.target.value })}>
             <option value="">Hz --</option>
             <option value="50">50 Hz</option>
@@ -204,6 +208,15 @@ export default function FieldRenderer({ field, value, onChange }) {
             <option value="1-phase">1-phase / 单相</option>
           </select>
         </div>
+        {voltageIsOther && (
+          <input
+            type="text"
+            className="other-input"
+            placeholder="请输入电压 / Enter voltage..."
+            value={v.voltageOther || ''}
+            onChange={(e) => update({ ...v, voltageOther: e.target.value })}
+          />
+        )}
       </div>
     );
   }
