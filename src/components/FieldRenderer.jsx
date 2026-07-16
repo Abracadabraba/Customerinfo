@@ -190,13 +190,11 @@ export default function FieldRenderer({ field, value, onChange }) {
             onChange={(e) => update({ ...v, voltage: e.target.value })}
           />
           <span>V</span>
-          <input
-            type="text"
-            placeholder="Hz"
-            value={v.hz || ''}
-            onChange={(e) => update({ ...v, hz: e.target.value })}
-          />
-          <span>Hz</span>
+          <select value={v.hz || ''} onChange={(e) => update({ ...v, hz: e.target.value })}>
+            <option value="">Hz --</option>
+            <option value="50">50 Hz</option>
+            <option value="60">60 Hz</option>
+          </select>
           <select
             value={v.phase || ''}
             onChange={(e) => update({ ...v, phase: e.target.value })}

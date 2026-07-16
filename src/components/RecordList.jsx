@@ -45,7 +45,7 @@ export default function RecordList({ onCreateNew, onEdit, onOpenSettings }) {
   return (
     <div className="record-list">
       <div className="list-header">
-        <h1>客户信息登记 / Customer Registration</h1>
+        <h1>制药用水设备展会客户收集 / Customer Registration</h1>
         <div className="header-actions">
           <button className="btn" onClick={onOpenSettings}>
             ⚙ 设置 / Settings

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import FieldRenderer from './FieldRenderer';
 import BusinessCardCapture from './BusinessCardCapture';
 import {
@@ -49,6 +49,10 @@ export default function FormWizard({ existingRecord, onDone, onCancel }) {
   }, [selectedProducts]);
 
   const currentStep = steps[stepIndex];
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [stepIndex]);
 
   function updateBasic(key, value) {
     setData((d) => ({ ...d, basic: { ...d.basic, [key]: value } }));
